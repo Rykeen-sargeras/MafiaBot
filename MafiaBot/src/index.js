@@ -1,4 +1,4 @@
-import app from './web.js';
+import app from './public-app.js';
 import { config } from './config.js';
 import { db, ensureSchema } from './db.js';
 import { startDiscord } from './discord.js';
