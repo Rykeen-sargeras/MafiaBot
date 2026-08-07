@@ -1,0 +1,57 @@
+MAFIABOT - NESTED FOLDER VERSION
+
+UPLOAD THE SINGLE MafiaBot FOLDER TO YOUR NEW GITHUB REPO:
+Rykeen-sargeras/MafiaBot
+
+Your repo should look like:
+
+MafiaBot/
+  package.json
+  railway.json
+  .env.example
+  README.md
+  src/
+    index.js
+    web.js
+    config.js
+    db.js
+    discord.js
+    youtube.js
+    sync.js
+    oauth-state.js
+  sql/
+    schema.sql
+
+IMPORTANT RAILWAY SETTING:
+
+Verification-bot -> Settings -> Source -> Root Directory
+
+SET IT TO:
+
+MafiaBot
+
+Do NOT leave Root Directory blank with this version.
+
+RAILWAY VARIABLE:
+
+ADMIN_PASSWORD=Rykeen123
+
+CREATOR CONNECT LINK:
+
+https://verification-bot-production-942f.up.railway.app/creator-connect
+
+CREATOR PASSWORD:
+
+Rykeen123
+
+ADMIN:
+
+https://verification-bot-production-942f.up.railway.app/admin
+
+VERIFICATION CHANNEL ID:
+
+1535094192244523128
+
+HEALTH:
+
+https://verification-bot-production-942f.up.railway.app/health
