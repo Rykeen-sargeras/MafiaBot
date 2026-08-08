@@ -1,4 +1,4 @@
-import app from './public-app.js';
+import app from './shop-wrapper.js';
 import { config } from './config.js';
 import { db, ensureSchema } from './db.js';
 import { startDiscord } from './discord.js';
