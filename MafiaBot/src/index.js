@@ -1,4 +1,4 @@
-import app from './admin-wrapper.js';
+import app from './brand-wrapper.js';
 import { config } from './config.js';
 import { db, ensureSchema } from './db.js';
 import { startDiscord } from './discord.js';
