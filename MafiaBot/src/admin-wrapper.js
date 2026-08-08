@@ -55,19 +55,22 @@ async function ensureSiteCreatorsTable() {
       display_name TEXT NOT NULL,
       youtube_channel_url TEXT NOT NULL,
       youtube_channel_id TEXT,
+      youtube_handle TEXT,
       enabled BOOLEAN NOT NULL DEFAULT TRUE,
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await db.query(`ALTER TABLE site_creators ADD COLUMN IF NOT EXISTS youtube_handle TEXT`);
 }
 
-function inferChannelId(value = '') {
-  const text = String(value).trim();
-  if (/^UC[\w-]{20,}$/.test(text)) return text;
-  const match = text.match(/youtube\.com\/channel\/(UC[\w-]+)/i);
-  return match?.[1] || '';
+function normalizeHandle(value = '') {
+  let text = String(value || '').trim();
+  const urlMatch = text.match(/youtube\.com\/@([^/?#]+)/i);
+  if (urlMatch) text = `@${urlMatch[1]}`;
+  if (text && !text.startsWith('@')) text = `@${text}`;
+  return /^@[A-Za-z0-9._-]+$/.test(text) ? text : '';
 }
 
 function shell(title, body) {
@@ -88,9 +91,9 @@ app.get('/admin', async (req, res, next) => {
 
   await ensureSiteCreatorsTable();
   const { rows } = await db.query('SELECT * FROM site_creators ORDER BY sort_order ASC, id ASC');
-  const creators = rows.length ? rows.map(c => `<div class="creator"><div><h3>${escapeHtml(c.display_name)}</h3><div class="small">${escapeHtml(c.youtube_channel_url)}</div><div class="small">Channel ID: ${escapeHtml(c.youtube_channel_id || 'not set')}</div><span class="status ${c.enabled ? 'on' : 'off'}">${c.enabled ? 'ENABLED' : 'DISABLED'}</span></div><div class="actions"><form method="post" action="/admin/creators/${c.id}/toggle"><button class="gray" type="submit">${c.enabled ? 'Disable' : 'Enable'}</button></form><form method="post" action="/admin/creators/${c.id}/delete" onsubmit="return confirm('Remove this creator from the website?')"><button class="danger" type="submit">Remove</button></form></div></div>`).join('') : '<p>No website creators have been added yet.</p>';
+  const creators = rows.length ? rows.map(c => `<div class="creator"><div><h3>${escapeHtml(c.display_name)}</h3><div class="small">${escapeHtml(c.youtube_handle || c.youtube_channel_url)}</div><div class="small">${escapeHtml(c.youtube_channel_url)}</div><span class="status ${c.enabled ? 'on' : 'off'}">${c.enabled ? 'ENABLED' : 'DISABLED'}</span></div><div class="actions"><form method="post" action="/admin/creators/${c.id}/toggle"><button class="gray" type="submit">${c.enabled ? 'Disable' : 'Enable'}</button></form><form method="post" action="/admin/creators/${c.id}/delete" onsubmit="return confirm('Remove this creator from the website?')"><button class="danger" type="submit">Remove</button></form></div></div>`).join('') : '<p>No website creators have been added yet.</p>';
 
-  return res.status(200).send(shell('Admin', `<main class="page"><div class="toprow"><div><h1>Website Creator Admin</h1><p>This list is separate from YouTube membership/OAuth creator connections.</p></div><a class="btn gray" href="/admin/logout">Log Out</a></div><div class="grid"><section class="panel"><h2>Add Creator</h2><form method="post" action="/admin/creators"><label>Display Name</label><input name="display_name" required placeholder="Creator name"><label>YouTube Channel URL</label><input name="youtube_channel_url" required placeholder="https://www.youtube.com/@creator"><label>YouTube Channel ID</label><input name="youtube_channel_id" placeholder="UC... (optional if URL contains /channel/UC...)"><p class="hint">For automatic latest-video scanning, a YouTube Channel ID works best. You can paste the channel ID directly or a /channel/UC... URL.</p><button type="submit">Add Creator</button></form></section><section class="panel"><h2>Website Creators</h2>${creators}</section></div></main>`));
+  return res.status(200).send(shell('Admin', `<main class="page"><div class="toprow"><div><h1>Website Creator Admin</h1><p>This list is separate from YouTube membership/OAuth creator connections.</p></div><a class="btn gray" href="/admin/logout">Log Out</a></div><div class="grid"><section class="panel"><h2>Add Creator</h2><form method="post" action="/admin/creators"><label>Display Name</label><input name="display_name" required placeholder="Creator name"><label>YouTube @Handle</label><input name="youtube_handle" required placeholder="@creator"><p class="hint">Enter the creator's YouTube handle, for example <strong>@creator</strong>. You can also paste a YouTube @handle URL and it will be converted automatically.</p><button type="submit">Add Creator</button></form></section><section class="panel"><h2>Website Creators</h2>${creators}</section></div></main>`));
 });
 
 app.post('/admin/login', (req, res, next) => {
@@ -113,10 +116,11 @@ app.post('/admin/creators', async (req, res, next) => {
   if (!isAdmin(req)) return res.redirect(303, '/admin');
   await ensureSiteCreatorsTable();
   const displayName = String(req.body?.display_name || '').trim();
-  const url = String(req.body?.youtube_channel_url || '').trim();
-  const suppliedId = String(req.body?.youtube_channel_id || '').trim();
-  const channelId = suppliedId || inferChannelId(url) || null;
-  if (displayName && url) await db.query('INSERT INTO site_creators (display_name,youtube_channel_url,youtube_channel_id) VALUES ($1,$2,$3)', [displayName, url, channelId]);
+  const handle = normalizeHandle(req.body?.youtube_handle || '');
+  const url = handle ? `https://www.youtube.com/${handle}` : '';
+  if (displayName && handle) {
+    await db.query('INSERT INTO site_creators (display_name,youtube_channel_url,youtube_handle) VALUES ($1,$2,$3)', [displayName, url, handle]);
+  }
   return res.redirect(303, '/admin');
 });
 
