@@ -23,6 +23,8 @@ export const config = {
     clientId: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     guildId: process.env.DISCORD_GUILD_ID,
+    notifyMeChannelId: process.env.NOTIFYME_CHANNEL_ID || '1532513768855175279',
+    notifyMeBotId: process.env.NOTIFYME_BOT_ID || '',
     redirectUri: process.env.DISCORD_OAUTH_REDIRECT_URI || `${baseUrl}/auth/discord/callback`
   },
   google: {

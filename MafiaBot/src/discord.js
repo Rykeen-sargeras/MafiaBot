@@ -3,9 +3,15 @@ import {
   GatewayIntentBits, PermissionFlagsBits, REST, Routes, SlashCommandBuilder
 } from 'discord.js';
 import { config } from './config.js';
+import { backfillNotifyMeChannel, ingestNotifyMeMessage } from './notifyme.js';
 
 export const discordClient = new Client({
-  intents:[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMembers]
+  intents:[
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
 export function verificationPanelPayload() {
@@ -42,6 +48,13 @@ discordClient.once('ready',async()=>{
   console.log(`Discord logged in as ${discordClient.user.tag}`);
   try { await registerCommands(); console.log('Slash commands registered.'); }
   catch(e){ console.error('Command registration failed:',e); }
+  try { await backfillNotifyMeChannel(discordClient); }
+  catch(e){ console.error('NotifyMe backfill failed:',e); }
+});
+
+discordClient.on('messageCreate', async message => {
+  try { await ingestNotifyMeMessage(message); }
+  catch(e){ console.error('NotifyMe message intake failed:',e); }
 });
 
 discordClient.on('interactionCreate',async interaction=>{

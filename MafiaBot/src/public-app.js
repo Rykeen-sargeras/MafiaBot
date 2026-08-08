@@ -1,5 +1,6 @@
 import express from 'express';
 import botApp from './web.js';
+import { db } from './db.js';
 
 const app = express();
 const APP_NAME = 'Misfit Mafia YouTube Bot';
@@ -13,6 +14,35 @@ function hostOf(req) {
 
 function isVerifyHost(req) {
   return hostOf(req) === 'verify.misfitmafia.site';
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function streamCards(streams) {
+  if (!streams.length) {
+    return `<article class="card empty-streams"><span class="live-badge">OFF AIR</span><h3>No streams detected right now</h3><p>Live and scheduled streams posted by NotifyMe will appear here automatically.</p></article>`;
+  }
+
+  return streams.map(stream => {
+    const isLive = stream.status === 'live';
+    const badge = isLive ? 'LIVE NOW' : 'SCHEDULED';
+    const timing = isLive
+      ? 'Streaming now'
+      : `Announced ${new Date(stream.detected_at).toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'medium', timeStyle: 'short' })} ET`;
+    return `<article class="card stream-card">
+      <span class="live-badge ${isLive ? 'is-live' : 'is-upcoming'}">${badge}</span>
+      ${stream.thumbnail_url ? `<a href="${escapeHtml(stream.youtube_url)}" target="_blank" rel="noopener noreferrer"><img class="stream-thumbnail" src="${escapeHtml(stream.thumbnail_url)}" alt="${escapeHtml(stream.title)}" loading="lazy"></a>` : ''}
+      <div class="stream-copy"><div class="stream-creator">${escapeHtml(stream.creator_name)}</div><h3>${escapeHtml(stream.title)}</h3><p>${escapeHtml(timing)}</p></div>
+      <a class="cta primary stream-watch" href="${escapeHtml(stream.youtube_url)}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
+    </article>`;
+  }).join('');
 }
 
 function verifyShell(body, { portal = false } = {}) {
@@ -65,7 +95,7 @@ function hubShell(body) {
   <title>Misfit Mafia</title>
   <style>
     :root{--bg:#070809;--panel:#111317;--line:#2c3038;--text:#f5f5f5;--muted:#aeb2bb;--red:#b51f2a;--red2:#e13b47}
-    *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#341016 0,#0b0c0e 40%,#060708 76%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit}.wrap{width:min(1180px,calc(100% - 36px));margin:0 auto}.nav{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 0}.site-nav-footer{border-top:1px solid #24272e;margin-top:8px}.navleft,.navright{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.brand{font-size:24px;font-weight:950;text-decoration:none;letter-spacing:.02em}.nav a.btn,.cta{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:10px;padding:11px 16px;font-weight:800;border:1px solid #444954;background:#20232a}.nav a.verify{background:linear-gradient(180deg,var(--red2),var(--red));border-color:#e14b55}.hero{padding:86px 0 56px}.kicker{text-transform:uppercase;letter-spacing:.2em;color:#c8cbd1;font-size:12px;font-weight:900}.hero h1{font-size:clamp(58px,10vw,112px);line-height:.88;margin:14px 0 22px;letter-spacing:-.055em}.hero p{max-width:780px;color:#c5c8cf;font-size:20px;line-height:1.65}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}.cta.primary{background:linear-gradient(180deg,var(--red2),var(--red));border-color:#e14b55}.section{padding:24px 0 58px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:18px}.section-head h2{font-size:34px;margin:0}.section-head p{color:var(--muted);margin:0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card{background:linear-gradient(180deg,#15171b,#0f1114);border:1px solid var(--line);border-radius:18px;padding:24px}.card h3{margin:0 0 10px}.card p{color:#b9bdc5;line-height:1.65}.live-badge{display:inline-block;border:1px solid #e14b55;color:#fff;background:#9f1823;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:900;margin-bottom:14px}.shop-card{display:flex;align-items:center;justify-content:space-between;gap:20px}.shop-copy{max-width:740px}.footer{border-top:1px solid #24272e;padding:28px 0 42px;color:#858a94;font-size:13px;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.footer a{color:#c8cbd1;text-decoration:none;margin-right:12px}
+    *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#341016 0,#0b0c0e 40%,#060708 76%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit}.wrap{width:min(1180px,calc(100% - 36px));margin:0 auto}.nav{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 0}.site-nav-footer{border-top:1px solid #24272e;margin-top:8px}.navleft,.navright{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.brand{font-size:24px;font-weight:950;text-decoration:none;letter-spacing:.02em}.nav a.btn,.cta{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:10px;padding:11px 16px;font-weight:800;border:1px solid #444954;background:#20232a}.nav a.verify{background:linear-gradient(180deg,var(--red2),var(--red));border-color:#e14b55}.hero{padding:86px 0 56px}.kicker{text-transform:uppercase;letter-spacing:.2em;color:#c8cbd1;font-size:12px;font-weight:900}.hero h1{font-size:clamp(58px,10vw,112px);line-height:.88;margin:14px 0 22px;letter-spacing:-.055em}.hero p{max-width:780px;color:#c5c8cf;font-size:20px;line-height:1.65}.hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}.cta.primary{background:linear-gradient(180deg,var(--red2),var(--red));border-color:#e14b55}.section{padding:24px 0 58px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:18px}.section-head h2{font-size:34px;margin:0}.section-head p{color:var(--muted);margin:0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card{background:linear-gradient(180deg,#15171b,#0f1114);border:1px solid var(--line);border-radius:18px;padding:24px}.card h3{margin:0 0 10px}.card p{color:#b9bdc5;line-height:1.65}.live-badge{display:inline-block;border:1px solid #e14b55;color:#fff;background:#9f1823;padding:5px 8px;border-radius:999px;font-size:12px;font-weight:900;margin-bottom:14px}.live-badge.is-upcoming{background:#313640;border-color:#737b89}.stream-card{display:flex;flex-direction:column;overflow:hidden}.stream-thumbnail{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;margin-bottom:18px}.stream-copy{flex:1}.stream-creator{color:var(--red2);font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}.stream-watch{align-self:flex-start;margin-top:8px}.empty-streams{grid-column:1/-1}.shop-card{display:flex;align-items:center;justify-content:space-between;gap:20px}.shop-copy{max-width:740px}.footer{border-top:1px solid #24272e;padding:28px 0 42px;color:#858a94;font-size:13px;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.footer a{color:#c8cbd1;text-decoration:none;margin-right:12px}
     @media(max-width:800px){.grid{grid-template-columns:1fr}.nav{align-items:flex-start;flex-direction:column}.hero{padding-top:52px}.shop-card{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
@@ -79,7 +109,7 @@ function hubShell(body) {
 </div></body></html>`;
 }
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res, next) => {
   if (isVerifyHost(req)) {
     return res.status(200).send(verifyShell(`
       <main>
@@ -102,7 +132,16 @@ app.get('/', (req, res) => {
       </main>`));
   }
 
-  return res.status(200).send(hubShell(`
+  try {
+    const { rows: streams } = await db.query(`
+      SELECT youtube_url, creator_name, title, thumbnail_url, status, detected_at
+      FROM site_streams
+      WHERE expires_at > NOW()
+      ORDER BY CASE WHEN status='live' THEN 0 ELSE 1 END, detected_at DESC
+      LIMIT 12
+    `);
+
+    return res.status(200).send(hubShell(`
     <main>
       <section class="hero">
         <div class="kicker">Creators • Community • Live</div>
@@ -114,9 +153,7 @@ app.get('/', (req, res) => {
       <section class="section" id="creators">
         <div class="section-head"><div><h2>Creators & Live</h2><p>Live and scheduled YouTube streams will live here.</p></div></div>
         <div class="grid">
-          <article class="card"><span class="live-badge">CREATOR</span><h3>Misfit Mafia</h3><p>This card is ready to show the channel's current live stream, next scheduled stream, or latest upload.</p></article>
-          <article class="card"><span class="live-badge">CREATOR</span><h3>Scooter</h3><p>This card is ready to show the channel's current live stream, next scheduled stream, or latest upload.</p></article>
-          <article class="card"><span class="live-badge">MORE COMING</span><h3>Misfit Creators</h3><p>Connected creators can be added here without changing or removing their verification data.</p></article>
+          ${streamCards(streams)}
         </div>
       </section>
 
@@ -127,6 +164,9 @@ app.get('/', (req, res) => {
         </article>
       </section>
     </main>`));
+  } catch (error) {
+    return next(error);
+  }
 });
 
 app.get('/portal', (req, res) => {
