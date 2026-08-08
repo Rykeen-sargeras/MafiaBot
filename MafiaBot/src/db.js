@@ -62,7 +62,21 @@ export async function ensureSchema() {
       used_channel_id TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS site_streams (
+      youtube_video_id TEXT PRIMARY KEY,
+      discord_message_id TEXT NOT NULL UNIQUE,
+      youtube_url TEXT NOT NULL,
+      creator_name TEXT NOT NULL,
+      title TEXT NOT NULL,
+      thumbnail_url TEXT,
+      status TEXT NOT NULL DEFAULT 'live',
+      detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE INDEX IF NOT EXISTS discord_users_youtube_idx ON discord_users (youtube_channel_id);
+    CREATE INDEX IF NOT EXISTS site_streams_active_idx ON site_streams (expires_at, detected_at DESC);
   `);
 
   // Migrate older Safetybot schemas in-place. Older versions required
