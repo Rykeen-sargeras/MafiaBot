@@ -37,6 +37,7 @@ app.use((req, res, next) => {
       p,.muted,.small,label,.footer{color:var(--mm-silver)!important}
       .card,.panel,.product,.notice,.empty{background:rgba(10,11,14,.90)!important;backdrop-filter:blur(5px);border-color:rgba(199,203,210,.20)!important}
       .nav{background:rgba(4,5,7,.72)!important;backdrop-filter:blur(7px);padding-left:14px!important;padding-right:14px!important;border-radius:0 0 14px 14px}
+      .site-nav-footer{border-radius:14px 14px 0 0!important}
       .mm-brand-logo{display:block;width:150px;height:auto;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55))}
       .mm-hero-logo{display:block;width:min(515px,82vw);height:auto;margin:8px auto 26px;filter:drop-shadow(0 16px 30px rgba(0,0,0,.60))}
       .hero{text-align:center}
