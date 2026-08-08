@@ -64,6 +64,16 @@ export async function ensureSchema() {
 
     CREATE INDEX IF NOT EXISTS discord_users_youtube_idx ON discord_users (youtube_channel_id);
   `);
+
+  // Migrate older Safetybot schemas in-place. Older versions required
+  // creators.discord_user_id, but MafiaBot connects creators by YouTube channel
+  // and does not need a Discord user ID for creator records.
+  await db.query(`ALTER TABLE creators ALTER COLUMN discord_user_id DROP NOT NULL`).catch(error => {
+    // PostgreSQL error 42703 means the column does not exist, which is expected
+    // for fresh MafiaBot databases. Re-throw anything else.
+    if (error?.code !== '42703') throw error;
+  });
+
   await db.query(`ALTER TABLE creators ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT TRUE`);
   await db.query(`ALTER TABLE creators ADD COLUMN IF NOT EXISTS grace_period_days INTEGER NOT NULL DEFAULT 3`);
   await db.query(`ALTER TABLE discord_users ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ`);
